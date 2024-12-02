@@ -4,6 +4,8 @@
 
 # Packages
 library(data.table)
+library(hexSticker)
+library(ggplot2)
 source("hexwall2.R")
 
 #-------------------------------------------------------------------------------
@@ -12,7 +14,7 @@ source("hexwall2.R")
 
 # Check sorted by color
 hexwall("myhex", sticker_row_size = 9, sticker_width = 200, 
-        sort_mode = "colour", background_color = NA)
+        sort_mode = "colour", background_color = "white")
 
 # get all logos
 logos = list.files("./all_logos")
@@ -58,7 +60,7 @@ d[, all_logos_path := paste0("./all_logos/", logos, ".png")]
 d[, my_logos_path := paste0("./my_logos/", order, "_", logos, ".png")]
 file.copy(d$all_logos_path, d$my_logos_path)
 
-# Check sorted by color
+# sorted by filename
 image <- hexwall("my_logos", sticker_row_size = 10, sticker_width = 200, 
                  sort_mode = "filename", background_color = "white")
 
@@ -68,5 +70,49 @@ image <- image_trim(image)
 # preview
 image
 
+#-------------------------------------------------------------------------------
+# remove edges
+#-------------------------------------------------------------------------------
+
+# empty black plot
+p <- ggplot() +
+  theme_void() + # Removes all default axes, grid, and text
+  theme(panel.background = element_rect(fill = "black", color = NA), 
+        plot.background = element_rect(fill = "black", color = NA)) 
+
+# black sticker
+sticker(p, package = "", p_size = 12, p_y = 0.5,
+        p_color = "black", h_fill = "black", h_color = "black",
+        filename = "black_logo.png")
+
+# create n files for mask
+n_logos = list.files("./my_logos") |> length()
+d = data.table(name = 1:n_logos)
+d[, path_black_logo := "black_logo.png"]
+d[, path := paste0("./mask/", name, ".png")]
+
+# empty folder
+do.call(file.remove, list(list.files("./mask", full.names = TRUE)))
+
+# copy and rename logos
+file.copy(d$path_black_logo, d$path)
+
+# black hexwall
+mask <- hexwall("mask", sticker_row_size = 10, sticker_width = 200, 
+                 sort_mode = "filename", background_color = "white")
+
+# trim
+mask <- image_trim(mask)
+
+# negate
+mask <- image_negate(mask)
+
+# preview
+mask
+
+# mask hexwall
+image_transparent <- image_composite(image, mask, operator = "CopyOpacity")
+
 # save
-image_write(image, path = "my_hexwall.png", format = "png")
+image_write(image_transparent, path = "my_hexwall.png", format = "png")
+
